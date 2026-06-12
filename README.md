@@ -102,6 +102,23 @@ model (~130 MB) once.
 
 Try it immediately: pick a sample from `data/sample_logs/` in the UI.
 
+### Live RAG demo — grow the knowledge base mid-session
+
+`data/sample_runbooks/` holds documents that are deliberately **not** in the
+indexed corpus (`runbooks/` is auto-indexed at startup; these aren't):
+
+- `postmortem-2026-03-checkout-outage.md` — a post-mortem whose hard-won
+  lesson ("roll back first, scaling out makes a connection leak WORSE")
+  changes the remediation advice for pool-exhaustion incidents.
+- `batch-job-sla-breach.md` — a runbook for ETL/batch SLA breaches.
+
+To demo: run a matching sample log and note the plan (or its "no runbook
+above threshold — first principles" trace line) → open the **📚 Knowledge
+base** accordion → upload one of these files (you'll see it chunked live)
+→ click **Analyze** again. The new plan now cites the just-added document,
+with similarity scores — retrieval grounding changing agent behaviour in
+real time.
+
 ## Evals
 
 The classifier is scored with Inspect AI against incidents deliberately seeded
@@ -157,4 +174,5 @@ incident evidence and guarded remediation plan inside each ticket:
 | `runbooks/` | Remediation knowledge corpus (12 runbooks, RAG source) |
 | `data/sample_logs/` | Reproducible demo incidents |
 | `data/sample_screenshots/` | Synthetic monitoring dashboard for the vision-intake demo (upload alongside a log) |
+| `data/sample_runbooks/` | NOT pre-indexed — upload via the Knowledge-base panel to demo live RAG re-indexing |
 | `evals/` | Inspect AI eval of the Classifier agent |

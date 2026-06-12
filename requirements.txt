@@ -1,0 +1,12 @@
+# Python 3.12 (NOT 3.14 — langchain 0.3.x can't build pydantic models on 3.14)
+langchain>=0.3,<1.0
+langchain-openai>=0.2,<1.0
+langgraph>=0.2,<1.0
+gradio>=5,<6
+pydantic>=2.9
+python-dotenv>=1.0
+requests>=2.32
+openai>=1.59.2
+
+# Evals
+inspect-ai>=0.3

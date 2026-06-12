@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Third-party reference material (not ours to publish)
+_reference/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Inspect AI run logs
+evals/logs/
+
+# Generated output
+output/
+
+# Session scratchpad + organiser handouts (not part of the submission)
+ToDo.md
+Eng Acc - Hackathon Topics.md
+
+# OS
+Thumbs.db
+.DS_Store

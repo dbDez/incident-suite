@@ -1,0 +1,30 @@
+2026-06-11T22:10:04+02:00 INFO node-exporter host=batch-02 disk_used_pct=88 mount=/var
+2026-06-11T22:40:04+02:00 WARN node-exporter host=batch-02 disk usage above 90% mount=/var used=91%
+2026-06-11T23:10:04+02:00 WARN node-exporter host=batch-02 disk usage above 90% mount=/var used=93%
+2026-06-11T23:18:33+02:00 WARN logrotate ALERT exited abnormally with [1] -- /var/log/etl/etl.log: No space left on device
+2026-06-11T23:40:04+02:00 WARN node-exporter host=batch-02 disk usage above 90% mount=/var used=96%
+2026-06-11T23:52:18+02:00 ERROR etl-pipeline OSError: [Errno 28] No space left on device: '/var/log/etl/etl.log'
+2026-06-11T23:52:19+02:00 ERROR etl-pipeline batch job nightly-aggregate failed at step write_staging
+2026-06-11T23:55:42+02:00 ERROR etl-pipeline OSError: [Errno 28] No space left on device: '/var/data/staging/part-0042.parquet'
+2026-06-12T00:10:04+02:00 ERROR node-exporter host=batch-02 disk usage above 90% mount=/var used=99%
+2026-06-12T00:14:51+02:00 ERROR postgres FATAL: could not write to file "pg_wal/xlogtemp.4811": No space left on device
+2026-06-12T00:14:52+02:00 WARN postgres database system is read-only; write transactions will be rejected
+2026-06-12T00:22:30+02:00 ERROR etl-pipeline psycopg2.errors.DiskFull: could not extend file "base/16384/2611": No space left on device
+2026-06-12T00:31:07+02:00 WARN kernel batch-02 kernel: etl-worker invoked oom-killer: gfp_mask=0x100cca, order=0, oom_score_adj=0
+2026-06-12T00:31:07+02:00 ERROR kernel batch-02 kernel: Out of memory: Killed process 14233 (etl-worker) total-vm:18324512kB, anon-rss:15991208kB
+2026-06-12T00:31:09+02:00 INFO systemd etl-worker.service: Main process exited, code=killed, status=9/KILL
+2026-06-12T00:31:09+02:00 INFO systemd etl-worker.service: Scheduled restart job, restart counter is at 1
+2026-06-12T00:48:55+02:00 WARN kernel batch-02 kernel: etl-worker invoked oom-killer: gfp_mask=0x100cca, order=0, oom_score_adj=0
+2026-06-12T00:48:55+02:00 ERROR kernel batch-02 kernel: Out of memory: Killed process 15102 (etl-worker) total-vm:18551200kB, anon-rss:16203944kB
+2026-06-12T00:48:57+02:00 INFO systemd etl-worker.service: Scheduled restart job, restart counter is at 2
+2026-06-12T01:05:13+02:00 WARN kernel batch-02 kernel: etl-worker invoked oom-killer: gfp_mask=0x100cca, order=0, oom_score_adj=0
+2026-06-12T01:05:13+02:00 ERROR kernel batch-02 kernel: Out of memory: Killed process 15877 (etl-worker) total-vm:18602324kB, anon-rss:16400180kB
+2026-06-12T01:05:15+02:00 INFO systemd etl-worker.service: Scheduled restart job, restart counter is at 3
+2026-06-12T01:05:20+02:00 ERROR etl-pipeline batch job nightly-aggregate failed at step aggregate_users (3rd attempt)
+2026-06-12T01:12:44+02:00 WARN node-exporter host=batch-02 disk usage above 90% mount=/var used=99%
+2026-06-12T01:30:01+02:00 ERROR cron (root) MAIL (mailed 1 byte of output but got status 0x004b from MTA)
+2026-06-12T02:00:09+02:00 ERROR postgres FATAL: could not write to file "pg_wal/xlogtemp.5102": No space left on device
+2026-06-12T02:00:11+02:00 WARN postgres database system is read-only; write transactions will be rejected
+2026-06-12T02:14:30+02:00 WARN monitoring alert NIGHTLY_ETL_SLA_BREACH job=nightly-aggregate deadline=02:00 status=failed
+2026-06-12T03:00:01+02:00 INFO backup-agent starting nightly backup of batch-02:/var/data
+2026-06-12T03:00:14+02:00 ERROR backup-agent backup failed: write /backup/tmp/manifest.json: no space left on device

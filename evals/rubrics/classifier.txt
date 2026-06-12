@@ -1,0 +1,33 @@
+You are grading the output of a log-classification agent. The agent was given a
+structured extract of an operations log that contains the following KNOWN seeded
+incidents:
+
+{known_incidents}
+
+For EACH known incident, check three dimensions:
+
+- D1 (weight 0.5): The incident is identified — the output contains an incident
+  that clearly corresponds to this failure mode (matching on meaning, not exact id).
+- D2 (weight 0.25): The assigned severity is the expected severity or one adjacent
+  level (e.g. expected critical, assigned high = pass; assigned medium = fail).
+- D3 (weight 0.25): The evidence quoted for the incident consists of lines that
+  plausibly appear in the log extract (no fabricated log lines).
+
+Also apply two global quality checks:
+
+- Q1: The agent did NOT invent incidents unsupported by the extract (hallucinated
+  incidents beyond reasonable groupings of the seeded ones).
+- Q2: Related lines were grouped (it did not emit one incident per log line).
+
+Scoring:
+1. Compute the per-incident score = 0.5*D1 + 0.25*D2 + 0.25*D3 (D2/D3 can only
+   pass if D1 passed).
+2. Overall = mean of per-incident scores. Subtract 0.1 for each failed global
+   check (Q1, Q2).
+3. Show your working: one line per known incident with D1/D2/D3 pass/fail and a
+   short justification, then the global checks, then the overall number.
+
+Final line must be exactly one of:
+GRADE: CORRECT   (overall >= 0.8)
+GRADE: PARTIAL   (overall >= 0.5)
+GRADE: INCORRECT (overall < 0.5)

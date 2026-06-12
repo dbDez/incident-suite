@@ -1,0 +1,39 @@
+2026-06-12T14:02:11+02:00 INFO nginx worker_connections active=412 idle=88
+2026-06-12T14:02:41+02:00 INFO app-api request_rate=1240rpm p99=180ms
+2026-06-12T14:03:12+02:00 WARN app-api p99 latency rising p99=890ms route=/api/checkout
+2026-06-12T14:03:44+02:00 WARN app-api p99 latency rising p99=2100ms route=/api/checkout
+2026-06-12T14:04:02+02:00 ERROR nginx upstream timed out (110: Connection timed out) while reading response header from upstream, client: 41.13.22.108, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:04:05+02:00 ERROR nginx upstream timed out (110: Connection timed out) while reading response header from upstream, client: 41.13.97.55, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:04:09+02:00 ERROR nginx 502 Bad Gateway, client: 196.25.40.11, server: shop.example.com, request: "GET /api/cart HTTP/1.1", upstream: "http://10.0.4.21:8080/api/cart"
+2026-06-12T14:04:13+02:00 ERROR nginx 502 Bad Gateway, client: 105.4.12.90, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:04:20+02:00 WARN app-api worker pool saturated active_workers=64/64 queue_depth=312
+2026-06-12T14:04:26+02:00 ERROR nginx upstream timed out (110: Connection timed out) while reading response header from upstream, client: 41.13.22.119, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:04:31+02:00 ERROR nginx 502 Bad Gateway, client: 197.84.33.2, server: shop.example.com, request: "GET /api/products HTTP/1.1", upstream: "http://10.0.4.22:8080/api/products"
+2026-06-12T14:04:38+02:00 WARN app-api worker pool saturated active_workers=64/64 queue_depth=455
+2026-06-12T14:04:45+02:00 ERROR app-api java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms
+2026-06-12T14:04:47+02:00 ERROR app-api java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms
+2026-06-12T14:04:52+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:04:53+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:04:55+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:05:01+02:00 WARN mysql Threads_connected=501 max_connections=500
+2026-06-12T14:05:06+02:00 ERROR app-api java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms
+2026-06-12T14:05:09+02:00 ERROR nginx 502 Bad Gateway, client: 41.116.8.77, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:05:15+02:00 WARN app-worker idle transaction detected session_id=88412 idle_seconds=1860 state=idle_in_transaction
+2026-06-12T14:05:18+02:00 WARN app-worker idle transaction detected session_id=88419 idle_seconds=1721 state=idle_in_transaction
+2026-06-12T14:05:22+02:00 ERROR nginx upstream timed out (110: Connection timed out) while reading response header from upstream, client: 165.0.55.13, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:05:30+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:05:33+02:00 INFO deploy-bot release v2.14.3 deployed to app-api at 13:58:02 (4 minutes before error onset)
+2026-06-12T14:05:41+02:00 ERROR app-api java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms
+2026-06-12T14:05:48+02:00 ERROR nginx 502 Bad Gateway, client: 102.65.21.40, server: shop.example.com, request: "GET /api/cart HTTP/1.1", upstream: "http://10.0.4.21:8080/api/cart"
+2026-06-12T14:05:52+02:00 WARN app-api worker pool saturated active_workers=64/64 queue_depth=601
+2026-06-12T14:06:00+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:06:04+02:00 ERROR nginx 502 Bad Gateway, client: 41.13.22.108, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:06:11+02:00 WARN monitoring alert CHECKOUT_5XX_RATE value=4.2% threshold=1.0% duration=2m
+2026-06-12T14:06:18+02:00 ERROR app-api java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms
+2026-06-12T14:06:25+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:06:31+02:00 ERROR nginx 502 Bad Gateway, client: 196.25.99.4, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:06:40+02:00 WARN app-worker idle transaction detected session_id=88455 idle_seconds=2210 state=idle_in_transaction
+2026-06-12T14:06:48+02:00 INFO nginx worker_connections active=890 idle=2
+2026-06-12T14:06:55+02:00 ERROR nginx upstream timed out (110: Connection timed out) while reading response header from upstream, client: 105.224.1.18, server: shop.example.com, request: "POST /api/checkout HTTP/1.1", upstream: "http://10.0.4.21:8080/api/checkout"
+2026-06-12T14:07:02+02:00 ERROR mysql [ERROR] Too many connections
+2026-06-12T14:07:10+02:00 WARN monitoring alert CHECKOUT_5XX_RATE value=6.8% threshold=1.0% duration=3m

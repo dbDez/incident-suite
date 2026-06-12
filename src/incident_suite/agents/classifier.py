@@ -27,7 +27,11 @@ deploy-correlation incident without an explicit operational-event line.
 - Do not invent incidents that the evidence does not support."""
 
 
-def classify(extract: LogExtract, observations: str | None = None) -> ClassificationResult:
+def classify(
+    extract: LogExtract,
+    observations: str | None = None,
+    critique: str | None = None,
+) -> ClassificationResult:
     llm = get_llm(temperature=0.0).with_structured_output(ClassificationResult)
     prompt = (
         f"{SYSTEM}\n\n## Log extract\n\n"
@@ -50,5 +54,12 @@ def classify(extract: LogExtract, observations: str | None = None) -> Classifica
             "Corroborating signals observed on an uploaded monitoring screenshot — "
             "use to confirm/enrich incidents, cite as evidence only if echoed in logs:\n"
             + observations
+        )
+    if critique:
+        prompt += (
+            "\n\n## Reviewer critique of your previous classification\n"
+            "An independent reviewer disagreed with your earlier attempt. "
+            "Re-classify, addressing each objection — or keep your answer where "
+            "the evidence genuinely supports it:\n" + critique
         )
     return llm.invoke(prompt)

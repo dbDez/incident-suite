@@ -37,6 +37,16 @@ await page.waitForTimeout(2500);
 await page.screenshot({ path: `${OUT}/02-analysis.png`, fullPage: false });
 await page.screenshot({ path: `${OUT}/03-fullpage.png`, fullPage: true });
 
+// 5. Open the LangGraph accordion and capture the compiled-graph diagram
+//    (shows the verify_causes critic node + the dashed loop edge back to classify)
+const graphAccordion = page.getByText("Orchestration graph", { exact: false }).first();
+await graphAccordion.scrollIntoViewIfNeeded();
+await graphAccordion.click();
+await page.waitForTimeout(1200);
+const graphImg = page.locator(".accordion img, .gradio-accordion img, img[src*='incident_suite_graph']").last();
+await graphImg.scrollIntoViewIfNeeded();
+await graphImg.screenshot({ path: `${OUT}/04-graph.png` });
+
 const trace = await page.evaluate(() =>
   [...document.querySelectorAll("textarea")]
     .map((t) => t.value)

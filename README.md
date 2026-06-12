@@ -1,6 +1,6 @@
 # Incident Suite — Multi-Agent DevOps Incident Analysis
 
-> Upload ops logs (and optionally a monitoring screenshot) → specialized agents classify incidents, ground remediation plans in a runbook corpus via RAG, enrich them with live web research, notify Slack, raise JIRA tickets, and synthesize an actionable cookbook — orchestrated with LangGraph, with full agent-trace transparency and an Inspect AI eval suite.
+> Upload ops logs (and optionally a monitoring screenshot) → specialized agents classify incidents, ground remediation plans in a runbook corpus via RAG, enrich them with live web research, notify Slack, raise JIRA tickets, and synthesize an actionable cookbook — orchestrated with LangGraph. Agents **reason with each other**: an adversarial Critic agent independently re-derives root causes, disputes the Classifier, and reviews every remediation plan through bounded revision loops — with full agent-trace transparency and an Inspect AI eval suite.
 
 **Eng Accelerator Hackathon — Topic 1.** Built by Pieter Sadie.
 
@@ -21,7 +21,12 @@
                                 │
                  ┌──────────────▼──────────────┐
                  │  🔎 Classifier (structured    │
-                 │     JSON output, Pydantic)   │
+                 │     JSON output, Pydantic)   │◄───┐ disagreement →
+                 └──────────────┬──────────────┘    │ one revision round
+                 ┌──────────────▼──────────────┐    │
+                 │ ⚖ Critic — independently     │────┘
+                 │  re-derives root causes,     │
+                 │  agrees / objects (verdicts) │
                  └──────────────┬──────────────┘
                                 │  LangGraph Send API — one parallel
                                 │  branch PER incident (map-reduce)
@@ -30,6 +35,8 @@
         │ 🛠 Remediate│     │ 🛠 Remediate│ ... │ 🛠 Remediate│
         │ 📚 RAG over │     │ 📚 + 🌐 web │     │  (per      │
         │  runbooks/  │     │   research  │     │  incident) │
+        │ ⚖ plan      │     │ ⚖ plan      │     │ ⚖ plan     │
+        │  reviewed   │     │  reviewed   │     │  reviewed  │
         └─────┬─────┘     └─────┬─────┘     └─────┬─────┘
               └─────────────────┼─────────────────┘
               ┌─────────────────┼─────────────────┐
@@ -38,6 +45,11 @@
          │ notifier │      │ tickets  │      │ checklist  │
          └─────────┘      └──────────┘      └───────────┘
 ```
+
+The compiled LangGraph, rendered live in the app — note the dashed critic
+loop between `verify_causes` and `classify`:
+
+![Compiled LangGraph — critic loop, Send map-reduce, fan-out](docs/04-graph.png)
 
 ## Tech stack
 
@@ -63,9 +75,16 @@
    schema; no free-text handoffs.
 4. **Grounding over generation** — remediation plans cite their runbook chunks
    (with similarity scores) and web sources; ungrounded plans escalate to a human.
-5. **Transparency** — the UI streams the LangGraph node trace live: ingest stats,
+5. **Adversarial verification** — agents reason WITH each other, not just hand
+   off: the Critic agent re-derives root causes independently from the same
+   evidence (never seeing the Classifier's reasoning) and judges each incident;
+   disagreement loops the classification back for one bounded revision. Every
+   remediation plan gets the same treatment — objections trigger one revision,
+   and a still-contested plan is forced to escalate. All verdicts stream in the
+   trace and render in the UI.
+6. **Transparency** — the UI streams the LangGraph node trace live: ingest stats,
    incidents found, RAG hits with scores, research results, delivery outcomes.
-6. **Evaluated, not vibed** — `evals/` scores the Classifier against incidents
+7. **Evaluated, not vibed** — `evals/` scores the Classifier against incidents
    deliberately seeded in the sample logs.
 
 ## Quick start
@@ -112,7 +131,8 @@ incident evidence and guarded remediation plan inside each ticket:
 | Concept | File | What to look at |
 |---|---|---|
 | **LangGraph orchestration** | `src/incident_suite/graph.py` | `build_graph()` — StateGraph, nodes, edges; `SuiteState` with reducer-merged `trace`/`plans` |
-| **LangGraph Send API (map-reduce)** | `src/incident_suite/graph.py` | `fan_out_remediation()` returns one `Send("remediate_one", …)` per incident — parallel branches, implicit join |
+| **LangGraph Send API (map-reduce)** | `src/incident_suite/graph.py` | `route_after_verify()` returns one `Send("remediate_one", …)` per incident — parallel branches, implicit join |
+| **Agent-vs-agent reasoning (critic loop)** | `src/incident_suite/agents/critic.py` + `graph.py` | `review_causes()` / `review_plan()`; `verify_causes` node + conditional loop edge back to `classify` (bounded by `MAX_CLASSIFY_ROUNDS`) |
 | **Live agent trace** | `src/incident_suite/graph.py` + `app.py` | `_status()` → `get_stream_writer()` custom stream, merged with `values` stream in `run_suite()` |
 | **LangChain structured outputs** | `src/incident_suite/agents/classifier.py`, `agents/remediation.py` | `llm.with_structured_output(<PydanticModel>)` — no free-text agent handoffs |
 | **Schema contracts** | `src/incident_suite/schemas.py` | Every inter-agent payload; note `RemediationDraft` vs `RemediationPlan` (LLM never generates its own citations) |
@@ -132,7 +152,7 @@ incident evidence and guarded remediation plan inside each ticket:
 | `src/incident_suite/vision.py` | Screenshot → observations (vision intake) |
 | `src/incident_suite/rag.py` | Chroma + FastEmbed runbook RAG |
 | `src/incident_suite/graph.py` | LangGraph orchestrator (Send API map-reduce) |
-| `src/incident_suite/agents/` | Classifier · Remediation · Research · Cookbook |
+| `src/incident_suite/agents/` | Classifier · Critic · Remediation · Research · Cookbook |
 | `src/incident_suite/integrations/` | Slack webhook + JIRA REST clients |
 | `runbooks/` | Remediation knowledge corpus (12 runbooks, RAG source) |
 | `data/sample_logs/` | Reproducible demo incidents |

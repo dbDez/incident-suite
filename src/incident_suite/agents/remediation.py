@@ -23,6 +23,7 @@ def remediate(
     incident: Incident,
     citations: list[Citation],
     web_findings: list[WebFinding] | None = None,
+    objections: list[str] | None = None,
 ) -> RemediationPlan:
     web_findings = web_findings or []
     llm = get_llm().with_structured_output(RemediationDraft)
@@ -42,15 +43,25 @@ def remediate(
     else:
         web_block = ""
 
+    objection_block = ""
+    if objections:
+        objection_block = (
+            "\n## Reviewer objections to your previous plan\n"
+            "An independent reviewer rejected your earlier plan. Write a revised "
+            "plan that addresses each objection:\n"
+            + "\n".join(f"- {o}" for o in objections)
+        )
+
     draft = llm.invoke(
         f"{SYSTEM}\n\n## Incident\n{incident.model_dump_json(indent=2)}\n"
-        f"{runbook_block}{web_block}"
+        f"{runbook_block}{web_block}{objection_block}"
     )
     plan = RemediationPlan(
         **draft.model_dump(),
         incident_id=incident.incident_id,
         citations=citations,
         web_sources=web_findings,
+        revised=bool(objections),
     )
     if citations and not plan.runbook_source:
         plan.runbook_source = citations[0].source

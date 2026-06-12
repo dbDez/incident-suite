@@ -119,6 +119,19 @@ def _render_incidents(state: dict) -> str:
                     + "; ".join(f"[{w.title}]({w.url})" for w in plan.web_sources)
                     + "_"
                 )
+            if plan.review:
+                if plan.review.approved:
+                    out.append(
+                        "⚖ _Critic verdict: **approved**"
+                        + (" (after one revision)" if plan.revised else "")
+                        + "_"
+                    )
+                else:
+                    out.append(
+                        "⚖ _Critic verdict: **contested** — "
+                        + "; ".join(plan.review.objections)
+                        + "_"
+                    )
             if plan.escalate:
                 out.append("\n🚨 **Escalation required before action**")
         t = tickets.get(inc.incident_id)

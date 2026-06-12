@@ -76,6 +76,39 @@ class RemediationDraft(BaseModel):
     escalate: bool = Field(description="True if this needs a human before any action")
 
 
+class IncidentVerdict(BaseModel):
+    """Critic's judgement on ONE proposed incident."""
+
+    incident_id: str
+    agrees: bool = Field(description="True if the evidence supports this incident as stated")
+    objection: str | None = Field(
+        default=None, description="Why the critic disagrees (wrong root cause, wrong severity, unsupported by evidence)"
+    )
+
+
+class CauseReview(BaseModel):
+    """Critic agent's independent review of the Classifier's root-cause analysis."""
+
+    verdicts: list[IncidentVerdict]
+    missed_root_causes: list[str] = Field(
+        default_factory=list,
+        description="Root causes visible in the evidence that the classification missed",
+    )
+    agrees_overall: bool = Field(
+        description="True only if every verdict agrees AND nothing was missed"
+    )
+
+
+class PlanReview(BaseModel):
+    """Critic agent's review of one remediation plan."""
+
+    approved: bool = Field(description="True if the steps address the agreed root cause safely")
+    objections: list[str] = Field(
+        default_factory=list,
+        description="Specific problems: step doesn't address the cause, missing risk, unsafe ordering, ungrounded claim",
+    )
+
+
 class RemediationPlan(RemediationDraft):
     incident_id: str
     citations: list[Citation] = Field(
@@ -83,6 +116,12 @@ class RemediationPlan(RemediationDraft):
     )
     web_sources: list[WebFinding] = Field(
         default_factory=list, description="Web research findings for this incident"
+    )
+    review: PlanReview | None = Field(
+        default=None, description="Critic agent's verdict on this plan (attached in code)"
+    )
+    revised: bool = Field(
+        default=False, description="True if the plan was revised after a critic objection"
     )
 
 

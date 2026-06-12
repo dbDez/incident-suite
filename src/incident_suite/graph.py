@@ -68,14 +68,25 @@ class RemediateBranch(TypedDict):
 
 def node_ingest(state: SuiteState) -> dict:
     _status("⚙ LangGraph orchestrator: run started")
-    _status("📥 Ingest: parsing log in the side-channel (no LLM)…")
-    extract = ingest_log(state["log_path"])
+    if state.get("log_path"):
+        _status("📥 Ingest: parsing log in the side-channel (no LLM)…")
+        extract = ingest_log(state["log_path"])
+        lines = [
+            f"📥 Ingest: {extract.source_file} — {extract.total_lines} lines → "
+            f"{len(extract.error_lines)} deduplicated error/warn lines "
+            f"(side-channel: raw log never enters the LLM)"
+        ]
+    else:
+        extract = LogExtract(
+            source_file="(screenshot only — no log provided)",
+            total_lines=0,
+            window_start="unknown",
+            window_end="unknown",
+            error_lines=[],
+            line_counts_by_level={},
+        )
+        lines = ["📥 Ingest: no log file — running screenshot-only analysis"]
     update: dict = {"extract": extract}
-    lines = [
-        f"📥 Ingest: {extract.source_file} — {extract.total_lines} lines → "
-        f"{len(extract.error_lines)} deduplicated error/warn lines "
-        f"(side-channel: raw log never enters the LLM)"
-    ]
     if state.get("image_path"):
         _status("👁 Vision agent: analyzing image…")
         _status("👁 Extracting text, metrics and alert states from the screenshot (vision LLM)…")
@@ -84,6 +95,11 @@ def node_ingest(state: SuiteState) -> dict:
         lines.append(
             f"👁 Vision: screenshot analysed → {len(observations.splitlines())} observation lines"
         )
+    # Build the RAG index BEFORE the parallel fan-out — the parallel branches
+    # must only ever read it (chromadb builds are not thread-safe).
+    _status("📚 RAG: building runbook vector index…")
+    chunk_count = rag.warm_up()
+    lines.append(f"📚 RAG: runbook index ready ({chunk_count} chunks)")
     update["trace"] = lines
     return update
 

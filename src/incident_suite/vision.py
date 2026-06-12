@@ -16,6 +16,8 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from . import telemetry
+
 PROMPT = """You are an SRE looking at a monitoring/terminal screenshot during \
 an incident. Describe ONLY what is observable: metric names, values, thresholds \
 breached, time ranges, error text, resource saturation. Note anomalies (spikes, \
@@ -57,4 +59,6 @@ def observe_dashboard(image_path: str | Path) -> str:
         max_tokens=1024,
         temperature=0.1,
     )
+    if response.usage:
+        telemetry.add(response.usage.prompt_tokens, response.usage.completion_tokens)
     return response.choices[0].message.content or ""

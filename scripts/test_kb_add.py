@@ -16,5 +16,5 @@ for c in chunks:
 print("stats after:", rag.index_stats())
 
 (ROOT / "runbooks/batch-job-sla-breach.md").unlink()
-rag._store.cache_clear()
+rag.reset()
 print("reverted — demo runbook stays staged at data/sample_runbooks/ for the camera")

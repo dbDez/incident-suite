@@ -37,7 +37,14 @@ def classify(extract: LogExtract, observations: str | None = None) -> Classifica
         "Error/warn lines (deduplicated, [xN] = repeat count):\n"
         + "\n".join(extract.error_lines)
     )
-    if observations:
+    if observations and extract.total_lines == 0:
+        prompt += (
+            "\n\n## Dashboard screenshot observations (vision agent)\n"
+            "No log file was provided — these observations are the ONLY evidence. "
+            "Classify incidents from them and quote the observation lines as evidence:\n"
+            + observations
+        )
+    elif observations:
         prompt += (
             "\n\n## Dashboard screenshot observations (vision agent)\n"
             "Corroborating signals observed on an uploaded monitoring screenshot — "

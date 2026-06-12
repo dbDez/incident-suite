@@ -10,7 +10,7 @@ fresh build costs seconds and can never go stale against runbooks/.
 
 from __future__ import annotations
 
-from functools import lru_cache
+import threading
 from pathlib import Path
 
 from itertools import count
@@ -47,19 +47,34 @@ def _load_chunks() -> list[Document]:
 
 
 _build_no = count(1)
+_store_lock = threading.Lock()
+_store_instance: Chroma | None = None
 
 
-@lru_cache(maxsize=1)
 def _store() -> Chroma:
+    # Double-checked locking: parallel LangGraph Send branches must never race
+    # the build — chromadb's shared-client setup/teardown is not thread-safe.
     # Unique collection per build: chromadb caches clients in-process, so a
     # rebuild (e.g. after add_runbook) into the same collection name would
     # APPEND duplicates instead of starting fresh.
-    return Chroma.from_documents(
-        documents=_load_chunks(),
-        embedding=FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5"),
-        collection_name=f"runbooks_v{next(_build_no)}",
-        collection_metadata={"hnsw:space": "cosine"},
-    )
+    global _store_instance
+    if _store_instance is None:
+        with _store_lock:
+            if _store_instance is None:
+                _store_instance = Chroma.from_documents(
+                    documents=_load_chunks(),
+                    embedding=FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5"),
+                    collection_name=f"runbooks_v{next(_build_no)}",
+                    collection_metadata={"hnsw:space": "cosine"},
+                )
+    return _store_instance
+
+
+def reset() -> None:
+    """Drop the index so the next access rebuilds from runbooks/."""
+    global _store_instance
+    with _store_lock:
+        _store_instance = None
 
 
 def warm_up() -> int:
@@ -82,7 +97,7 @@ def add_runbook(file_path: str | Path) -> list[dict]:
     dest = RUNBOOK_DIR / src.name
     dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
-    _store.cache_clear()
+    reset()
     warm_up()
 
     return [

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from src.incident_suite import __version__, rag
+from src.incident_suite import __version__, rag, telemetry
 from src.incident_suite.graph import build_graph
 
 SAMPLE_DIR = Path(__file__).parent / "data" / "sample_logs"
@@ -36,20 +36,31 @@ def add_runbook_ui(file_path: str | None):
     return "\n".join(lines), kb_stats_md()
 
 
+def _tokens_md() -> str:
+    s = telemetry.snapshot()
+    return (
+        f"🔢 **Tokens:** {s['total']:,} (prompt {s['prompt']:,} · completion "
+        f"{s['completion']:,}) · {s['calls']} LLM calls · ≈ ${s['cost_usd']}"
+    )
+
+
 def run_suite(file_path: str | None, image_path: str | None):
-    if not file_path:
-        yield "Pick a log file first.", "", ""
+    if not file_path and not image_path:
+        yield "—", "", "Provide a log file, a monitoring screenshot, or both.", "", ""
         return
 
+    telemetry.reset()
     graph = build_graph()
     trace_lines: list[str] = []
     pending: list[str] = []  # live in-progress lines since the last completed step
     last_state: dict = {}
+    now_running = "▶ starting…"
     inputs = {"log_path": file_path, "image_path": image_path}
 
     for mode, chunk in graph.stream(inputs, stream_mode=["custom", "values"]):
         if mode == "custom":
             pending.append(f"   ⏳ {chunk}")
+            now_running = f"▶ **{chunk}**"
         else:
             last_state = chunk
             trace = chunk.get("trace", [])
@@ -57,10 +68,20 @@ def run_suite(file_path: str | None, image_path: str | None):
                 trace_lines = trace
                 pending = []  # superstep completed — its results replace the live lines
         yield (
+            now_running,
+            _tokens_md(),
             "\n".join(trace_lines + pending),
             _render_incidents(last_state),
             last_state.get("cookbook", ""),
         )
+
+    yield (
+        "✅ **Run complete**",
+        _tokens_md(),
+        "\n".join(trace_lines),
+        _render_incidents(last_state),
+        last_state.get("cookbook", ""),
+    )
 
 
 def _render_incidents(state: dict) -> str:
@@ -130,6 +151,8 @@ with gr.Blocks(title=f"Incident Suite v{__version__}") as demo:
                 label="Sample incidents",
             )
             run_btn = gr.Button("Analyze", variant="primary")
+            running_out = gr.Markdown("—")
+            tokens_out = gr.Markdown("")
             trace_out = gr.Textbox(label="Agent trace (live)", lines=18)
         with gr.Column(scale=2):
             incidents_out = gr.Markdown(label="Incidents & plans")
@@ -151,7 +174,9 @@ with gr.Blocks(title=f"Incident Suite v{__version__}") as demo:
             gr.Image(value=diagram, show_label=False, interactive=False)
 
     run_btn.click(
-        run_suite, inputs=[file_in, image_in], outputs=[trace_out, incidents_out, cookbook_out]
+        run_suite,
+        inputs=[file_in, image_in],
+        outputs=[running_out, tokens_out, trace_out, incidents_out, cookbook_out],
     )
 
 if __name__ == "__main__":

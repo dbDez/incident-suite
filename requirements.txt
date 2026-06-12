@@ -8,5 +8,15 @@ python-dotenv>=1.0
 requests>=2.32
 openai>=1.59.2
 
+# RAG — local embeddings (no API key) + vector store + heading-aware splitting
+langchain-community>=0.3,<1.0
+langchain-text-splitters>=0.3,<1.0
+langchain-chroma>=0.1
+chromadb>=0.5
+fastembed>=0.4
+
+# Web research agent
+tavily-python>=0.5
+
 # Evals
 inspect-ai>=0.3

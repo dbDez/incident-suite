@@ -41,6 +41,23 @@ class ClassificationResult(BaseModel):
     summary: str = Field(description="One-paragraph operator summary of the log window")
 
 
+class Citation(BaseModel):
+    """A retrieved runbook chunk grounding a remediation plan."""
+
+    source: str = Field(description="Runbook filename")
+    section: str = Field(description="Heading breadcrumb of the chunk")
+    score: float = Field(description="Cosine similarity (1.0 = identical)")
+    excerpt: str = Field(description="The retrieved chunk text")
+
+
+class WebFinding(BaseModel):
+    """A Tavily web-research result enriching an incident."""
+
+    title: str
+    url: str
+    snippet: str
+
+
 class RemediationStep(BaseModel):
     order: int
     action: str
@@ -49,13 +66,24 @@ class RemediationStep(BaseModel):
     risk: str = Field(description="What could go wrong applying this step")
 
 
-class RemediationPlan(BaseModel):
-    incident_id: str
+class RemediationDraft(BaseModel):
+    """What the LLM generates — grounding metadata is attached in code."""
+
     runbook_source: str | None = Field(
-        default=None, description="Which runbook this plan was retrieved from, if any"
+        default=None, description="Which runbook grounded this plan, if any"
     )
     steps: list[RemediationStep]
     escalate: bool = Field(description="True if this needs a human before any action")
+
+
+class RemediationPlan(RemediationDraft):
+    incident_id: str
+    citations: list[Citation] = Field(
+        default_factory=list, description="RAG chunks that grounded this plan"
+    )
+    web_sources: list[WebFinding] = Field(
+        default_factory=list, description="Web research findings for this incident"
+    )
 
 
 class TicketResult(BaseModel):

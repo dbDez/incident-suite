@@ -1,10 +1,12 @@
 """LangGraph orchestrator.
 
-ingest → classify → (per incident) remediate → notify_slack + create_jira
-                                   ↘ all plans → synthesize_cookbook
+ingest → classify → ⤜ Send() map-reduce: one remediate branch PER incident ⤛
+        → fan-out: notify_slack + create_jira + cookbook → END
 
-Every node appends a human-readable trace event so the UI can stream
-"which agent is doing what" live.
+Each incident gets its own parallel remediation branch (LangGraph Send API);
+the joins are implicit — notify/jira/cookbook wait for every branch. Every
+node appends human-readable trace events so the UI can stream "which agent
+is doing what" live.
 """
 
 from __future__ import annotations
@@ -12,15 +14,19 @@ from __future__ import annotations
 from typing import Annotated, TypedDict
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
 
+from . import rag, vision
 from .agents.classifier import classify
 from .agents.cookbook import synthesize
 from .agents.remediation import remediate
+from .agents.research import investigate
 from .ingest import ingest_log
 from .integrations.jira import create_ticket
 from .integrations.slack import notify
 from .schemas import (
     ClassificationResult,
+    Incident,
     LogExtract,
     NotificationResult,
     RemediationPlan,
@@ -34,57 +40,91 @@ def _append(left: list, right: list) -> list:
 
 class SuiteState(TypedDict, total=False):
     log_path: str
+    image_path: str | None
+    dashboard_observations: str | None
     extract: LogExtract
     classification: ClassificationResult
-    plans: list[RemediationPlan]
+    plans: Annotated[list[RemediationPlan], _append]
     notifications: list[NotificationResult]
     tickets: list[TicketResult]
     cookbook: str
     trace: Annotated[list[str], _append]
 
 
+class RemediateBranch(TypedDict):
+    """Input payload of one Send() branch — a single incident."""
+
+    incident: Incident
+
+
 def node_ingest(state: SuiteState) -> dict:
     extract = ingest_log(state["log_path"])
-    return {
-        "extract": extract,
-        "trace": [
-            f"📥 Ingest: {extract.source_file} — {extract.total_lines} lines → "
-            f"{len(extract.error_lines)} deduplicated error/warn lines "
-            f"(side-channel: raw log never enters the LLM)"
-        ],
-    }
+    update: dict = {"extract": extract}
+    lines = [
+        f"📥 Ingest: {extract.source_file} — {extract.total_lines} lines → "
+        f"{len(extract.error_lines)} deduplicated error/warn lines "
+        f"(side-channel: raw log never enters the LLM)"
+    ]
+    if state.get("image_path"):
+        observations = vision.observe_dashboard(state["image_path"])
+        update["dashboard_observations"] = observations
+        lines.append(
+            f"👁 Vision: screenshot analysed → {len(observations.splitlines())} observation lines"
+        )
+    update["trace"] = lines
+    return update
 
 
 def node_classify(state: SuiteState) -> dict:
-    result = classify(state["extract"])
-    lines = [
-        f"🔎 Classifier: found {len(result.incidents)} incident(s)"
-    ] + [
+    result = classify(state["extract"], state.get("dashboard_observations"))
+    lines = [f"🔎 Classifier: found {len(result.incidents)} incident(s)"] + [
         f"   · [{i.severity.value.upper()}] {i.title} ({i.affected_component})"
         for i in result.incidents
     ]
     return {"classification": result, "trace": lines}
 
 
-def node_remediate(state: SuiteState) -> dict:
-    plans, lines = [], []
-    for incident in state["classification"].incidents:
-        plan = remediate(incident)
-        plans.append(plan)
-        src = plan.runbook_source or "first principles"
-        esc = " ⚠ ESCALATE" if plan.escalate else ""
-        lines.append(
-            f"🛠 Remediation: {incident.incident_id} → {len(plan.steps)} steps "
-            f"(grounded in {src}){esc}"
-        )
-    return {"plans": plans, "trace": lines}
+def fan_out_remediation(state: SuiteState):
+    """Send API map: spawn one remediation branch per classified incident."""
+    incidents = state["classification"].incidents
+    if not incidents:
+        return "cookbook"
+    return [Send("remediate_one", {"incident": inc}) for inc in incidents]
+
+
+def node_remediate_one(branch: RemediateBranch) -> dict:
+    incident = branch["incident"]
+    citations = rag.retrieve(incident)
+    web_findings = investigate(incident)
+    plan = remediate(incident, citations, web_findings)
+
+    lines = [
+        f"🛠 Remediation[{incident.incident_id}]: {len(plan.steps)} steps"
+        + (" ⚠ ESCALATE" if plan.escalate else "")
+    ]
+    if citations:
+        for c in citations:
+            lines.append(
+                f"   📚 RAG: {c.source} → {c.section} (similarity {c.score})"
+            )
+    else:
+        lines.append("   📚 RAG: no runbook above threshold — first principles")
+    if web_findings:
+        for w in web_findings:
+            lines.append(f"   🌐 Research: {w.title} ({w.url})")
+    else:
+        lines.append("   🌐 Research: skipped (no TAVILY_API_KEY) or no results")
+    return {"plans": [plan], "trace": lines}
 
 
 def node_notify(state: SuiteState) -> dict:
     plans_by_id = {p.incident_id: p for p in state["plans"]}
     results, lines = [], []
     for incident in state["classification"].incidents:
-        r = notify(incident, plans_by_id[incident.incident_id])
+        plan = plans_by_id.get(incident.incident_id)
+        if not plan:
+            continue
+        r = notify(incident, plan)
         results.append(r)
         lines.append(
             f"💬 Slack: {incident.incident_id} → "
@@ -97,7 +137,10 @@ def node_jira(state: SuiteState) -> dict:
     plans_by_id = {p.incident_id: p for p in state["plans"]}
     results, lines = [], []
     for incident in state["classification"].incidents:
-        r = create_ticket(incident, plans_by_id[incident.incident_id])
+        plan = plans_by_id.get(incident.incident_id)
+        if not plan:
+            continue
+        r = create_ticket(incident, plan)
         results.append(r)
         lines.append(
             f"🎫 JIRA: {incident.incident_id} → "
@@ -107,7 +150,7 @@ def node_jira(state: SuiteState) -> dict:
 
 
 def node_cookbook(state: SuiteState) -> dict:
-    doc = synthesize(state["classification"], state["plans"])
+    doc = synthesize(state["classification"], state.get("plans", []))
     return {"cookbook": doc, "trace": ["📕 Cookbook: checklist synthesized"]}
 
 
@@ -115,18 +158,20 @@ def build_graph():
     g = StateGraph(SuiteState)
     g.add_node("ingest", node_ingest)
     g.add_node("classify", node_classify)
-    g.add_node("remediate", node_remediate)
+    g.add_node("remediate_one", node_remediate_one)
     g.add_node("notify_slack", node_notify)
     g.add_node("create_jira", node_jira)
     g.add_node("cookbook", node_cookbook)
 
     g.add_edge(START, "ingest")
     g.add_edge("ingest", "classify")
-    g.add_edge("classify", "remediate")
-    # fan-out after remediation
-    g.add_edge("remediate", "notify_slack")
-    g.add_edge("remediate", "create_jira")
-    g.add_edge("remediate", "cookbook")
+    # map-reduce: one parallel branch per incident, joined implicitly below
+    g.add_conditional_edges(
+        "classify", fan_out_remediation, ["remediate_one", "cookbook"]
+    )
+    g.add_edge("remediate_one", "notify_slack")
+    g.add_edge("remediate_one", "create_jira")
+    g.add_edge("remediate_one", "cookbook")
     g.add_edge("notify_slack", END)
     g.add_edge("create_jira", END)
     g.add_edge("cookbook", END)

@@ -16,7 +16,7 @@ degradation or imminent outage; medium = needs attention this week; low/info = h
 - Do not invent incidents that the evidence does not support."""
 
 
-def classify(extract: LogExtract) -> ClassificationResult:
+def classify(extract: LogExtract, observations: str | None = None) -> ClassificationResult:
     llm = get_llm().with_structured_output(ClassificationResult)
     prompt = (
         f"{SYSTEM}\n\n## Log extract\n\n"
@@ -26,4 +26,11 @@ def classify(extract: LogExtract) -> ClassificationResult:
         "Error/warn lines (deduplicated, [xN] = repeat count):\n"
         + "\n".join(extract.error_lines)
     )
+    if observations:
+        prompt += (
+            "\n\n## Dashboard screenshot observations (vision agent)\n"
+            "Corroborating signals observed on an uploaded monitoring screenshot — "
+            "use to confirm/enrich incidents, cite as evidence only if echoed in logs:\n"
+            + observations
+        )
     return llm.invoke(prompt)

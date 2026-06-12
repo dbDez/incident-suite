@@ -1,0 +1,23 @@
+2026-06-10T11:20:03+02:00 INFO kafka-exporter group=order-events-consumer lag_total=1840 partitions=12
+2026-06-10T11:30:03+02:00 WARN kafka-exporter group=order-events-consumer lag_total=48211 partitions=12 trend=rising
+2026-06-10T11:32:15+02:00 INFO deploy-bot release v0.9.0 of enrichment-service deployed at 11:28:44
+2026-06-10T11:40:03+02:00 WARN kafka-exporter group=order-events-consumer lag_total=131977 partitions=12 trend=rising
+2026-06-10T11:41:30+02:00 ERROR enrichment-service org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced
+2026-06-10T11:41:33+02:00 WARN enrichment-service Attempt to heartbeat failed since group is rebalancing group=order-events-consumer
+2026-06-10T11:42:08+02:00 ERROR enrichment-service org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced
+2026-06-10T11:42:41+02:00 WARN enrichment-service Attempt to heartbeat failed since group is rebalancing group=order-events-consumer
+2026-06-10T11:43:55+02:00 ERROR redis OOM command not allowed when used memory > 'maxmemory' command=SETEX key=enrich:cache:sku-88412
+2026-06-10T11:43:57+02:00 ERROR redis OOM command not allowed when used memory > 'maxmemory' command=SETEX key=enrich:cache:sku-91633
+2026-06-10T11:44:02+02:00 WARN redis-exporter evicted_keys=184220 used_memory=7.98G maxmemory=8.00G policy=allkeys-lru
+2026-06-10T11:44:30+02:00 WARN enrichment-service cache hit rate 12% (baseline 94%) — falling through to product-db
+2026-06-10T11:45:10+02:00 ERROR product-db Too many connections
+2026-06-10T11:45:14+02:00 WARN product-db slow query log: SELECT sku enrichment batch took 14.2s rows=50000
+2026-06-10T11:46:20+02:00 ERROR enrichment-service requests to pricing-api failing: 429 Too Many Requests Retry-After=60
+2026-06-10T11:46:22+02:00 ERROR enrichment-service requests to pricing-api failing: 429 Too Many Requests Retry-After=60
+2026-06-10T11:46:25+02:00 ERROR enrichment-service requests to pricing-api failing: 429 Too Many Requests Retry-After=60
+2026-06-10T11:46:50+02:00 WARN pricing-api-client retry storm detected: 1840 retries in 60s for 312 base requests, no backoff configured
+2026-06-10T11:50:03+02:00 WARN kafka-exporter group=order-events-consumer lag_total=288450 partitions=12 trend=rising
+2026-06-10T11:52:11+02:00 WARN monitoring alert ORDER_FRESHNESS_SLA value=31m threshold=5m duration=10m
+2026-06-10T11:55:03+02:00 WARN kafka-exporter group=order-events-consumer lag_total=361200 partitions=12 trend=rising eta_drain=never retention=24h
+2026-06-10T11:58:40+02:00 ERROR redis OOM command not allowed when used memory > 'maxmemory' command=SETEX key=enrich:cache:sku-77109
+2026-06-10T12:00:03+02:00 WARN kafka-exporter group=order-events-consumer lag_total=414873 partitions=12 trend=rising

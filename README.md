@@ -83,11 +83,18 @@ Try it immediately: pick a sample from `data/sample_logs/` in the UI.
 
 ## Evals
 
+The classifier is scored with Inspect AI against incidents deliberately seeded
+in the sample logs (LLM judge, deterministic known-incidents checklist —
+identified? severity right? evidence grounded?). **Current result:
+`accuracy 1.000` (2/2 samples CORRECT, gpt-4o-mini classifier, Sonnet judge).**
+
 ```bash
 cd evals
 inspect eval task_classifier.py --model openai/openai/gpt-4o-mini
 inspect view
 ```
+
+See `evals/README.md` for the OpenRouter env setup.
 
 ## Repo layout
 

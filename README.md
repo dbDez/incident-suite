@@ -8,7 +8,7 @@
 
 🎬 **[Watch the demo video (Loom)](https://www.loom.com/share/2b24517d66d44cb894dd8057e26713cf)** — why the app exists, uploading logs & monitoring screenshots, live analysis, and posting to Slack + JIRA.
 
-⚖ **[Critic agent deep-dive (Loom)](https://www.loom.com/share/12089f9813ff42d0b43bcfb711383a6f)** — agents reasoning with each other: the Critic independently re-derives root causes, disputes the Classifier, forces a revision round, and reviews every remediation plan.
+⚖ **[Critic agent deep-dive (Loom)](https://www.loom.com/share/e41f07c81f8544509e6a9542316a5690)** — agents reasoning with each other: the Critic independently re-derives root causes, disputes the Classifier, forces a revision round, and reviews every remediation plan.
 
 ![Incident Suite operator console — live agent trace, grounded plans, citations](docs/02-analysis.png)
 

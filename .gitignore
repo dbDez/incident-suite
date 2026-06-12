@@ -24,3 +24,8 @@ LOOM-SCRIPT.md
 # OS
 Thumbs.db
 .DS_Store
+
+# screenshot tooling (dev-only)
+node_modules/
+package.json
+package-lock.json

@@ -4,6 +4,8 @@
 
 **Eng Accelerator Hackathon — Topic 1.** Built by Pieter Sadie.
 
+![Incident Suite operator console — live agent trace, grounded plans, citations](docs/02-analysis.png)
+
 ## Architecture
 
 ```

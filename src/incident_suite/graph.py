@@ -77,6 +77,11 @@ def node_ingest(state: SuiteState) -> dict:
 
 def node_classify(state: SuiteState) -> dict:
     result = classify(state["extract"], state.get("dashboard_observations"))
+    # Guard: dedupe incidents by id (models occasionally emit one per repeat line)
+    seen: set[str] = set()
+    result.incidents = [
+        i for i in result.incidents if not (i.incident_id in seen or seen.add(i.incident_id))
+    ]
     lines = [f"🔎 Classifier: found {len(result.incidents)} incident(s)"] + [
         f"   · [{i.severity.value.upper()}] {i.title} ({i.affected_component})"
         for i in result.incidents

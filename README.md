@@ -6,7 +6,7 @@
 
 **Eng Accelerator Hackathon — Topic 1.** Built by Pieter Sadie.
 
-🎬 **[Watch the demo video (Loom)](https://www.loom.com/share/2b24517d66d44cb894dd8057e26713cf)** — full run: log upload → critic-verified classification → grounded plans → Slack + JIRA → cookbook.
+🎬 **[Watch the demo video (Loom)](https://www.loom.com/share/2b24517d66d44cb894dd8057e26713cf)** — why the app exists, uploading logs & monitoring screenshots, live analysis, and posting to Slack + JIRA. (The adversarial Critic loop landed after recording — see the agent trace, the [graph diagram](docs/04-graph.png), and `agents/critic.py` for that part of the story.)
 
 ![Incident Suite operator console — live agent trace, grounded plans, citations](docs/02-analysis.png)
 

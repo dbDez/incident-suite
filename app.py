@@ -44,9 +44,13 @@ def _tokens_md() -> str:
     )
 
 
-def run_suite(file_path: str | None, image_path: str | None):
+def run_suite(file_path: str | None, image_path: str | None, log_text: str = ""):
+    if not file_path and (log_text or "").strip():
+        pasted = Path(tempfile.gettempdir()) / "pasted.log"
+        pasted.write_text(log_text, encoding="utf-8")
+        file_path = str(pasted)
     if not file_path and not image_path:
-        yield "—", "", "Provide a log file, a monitoring screenshot, or both.", "", ""
+        yield "—", "", "Provide a log file, pasted log text, a screenshot — or any combination.", "", ""
         return
 
     telemetry.reset()
@@ -154,6 +158,11 @@ with gr.Blocks(title=f"Incident Suite v{__version__}", js=TOOLTIP_JS) as demo:
     with gr.Row():
         with gr.Column(scale=1):
             file_in = gr.File(label="Ops log", type="filepath", file_types=[".log", ".txt"])
+            text_in = gr.Textbox(
+                label="…or paste log text",
+                lines=3,
+                placeholder="Paste raw log lines here instead of uploading a file",
+            )
             image_in = gr.Image(
                 label="Monitoring screenshot (optional — works alone too)",
                 type="filepath",
@@ -189,7 +198,7 @@ with gr.Blocks(title=f"Incident Suite v{__version__}", js=TOOLTIP_JS) as demo:
 
     run_btn.click(
         run_suite,
-        inputs=[file_in, image_in],
+        inputs=[file_in, image_in, text_in],
         outputs=[running_out, tokens_out, trace_out, incidents_out, cookbook_out],
     )
 

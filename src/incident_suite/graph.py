@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Annotated, TypedDict
 
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
@@ -38,6 +39,14 @@ def _append(left: list, right: list) -> list:
     return left + right
 
 
+def _status(message: str) -> None:
+    """Emit a live in-progress line to the UI (no-op outside custom streaming)."""
+    try:
+        get_stream_writer()(message)
+    except Exception:
+        pass
+
+
 class SuiteState(TypedDict, total=False):
     log_path: str
     image_path: str | None
@@ -58,6 +67,8 @@ class RemediateBranch(TypedDict):
 
 
 def node_ingest(state: SuiteState) -> dict:
+    _status("⚙ LangGraph orchestrator: run started")
+    _status("📥 Ingest: parsing log in the side-channel (no LLM)…")
     extract = ingest_log(state["log_path"])
     update: dict = {"extract": extract}
     lines = [
@@ -66,6 +77,8 @@ def node_ingest(state: SuiteState) -> dict:
         f"(side-channel: raw log never enters the LLM)"
     ]
     if state.get("image_path"):
+        _status("👁 Vision agent: analyzing image…")
+        _status("👁 Extracting text, metrics and alert states from the screenshot (vision LLM)…")
         observations = vision.observe_dashboard(state["image_path"])
         update["dashboard_observations"] = observations
         lines.append(
@@ -76,6 +89,7 @@ def node_ingest(state: SuiteState) -> dict:
 
 
 def node_classify(state: SuiteState) -> dict:
+    _status("🔎 Classifier agent: LangChain structured-output call (Pydantic schema)…")
     result = classify(state["extract"], state.get("dashboard_observations"))
     # Guard: dedupe incidents by id (models occasionally emit one per repeat line)
     seen: set[str] = set()
@@ -99,8 +113,11 @@ def fan_out_remediation(state: SuiteState):
 
 def node_remediate_one(branch: RemediateBranch) -> dict:
     incident = branch["incident"]
+    _status(f"📚 RAG: querying runbook vector index for {incident.incident_id}…")
     citations = rag.retrieve(incident)
+    _status(f"🌐 Researching via Tavily: {incident.incident_id}…")
     web_findings = investigate(incident)
+    _status(f"🛠 Remediation agent: drafting guarded plan for {incident.incident_id}…")
     plan = remediate(incident, citations, web_findings)
 
     lines = [
@@ -129,6 +146,7 @@ def node_notify(state: SuiteState) -> dict:
         plan = plans_by_id.get(incident.incident_id)
         if not plan:
             continue
+        _status(f"💬 Posting to Slack: {incident.incident_id}…")
         r = notify(incident, plan)
         results.append(r)
         lines.append(
@@ -145,6 +163,7 @@ def node_jira(state: SuiteState) -> dict:
         plan = plans_by_id.get(incident.incident_id)
         if not plan:
             continue
+        _status(f"🎫 Creating JIRA ticket: {incident.incident_id}…")
         r = create_ticket(incident, plan)
         results.append(r)
         lines.append(
@@ -155,6 +174,7 @@ def node_jira(state: SuiteState) -> dict:
 
 
 def node_cookbook(state: SuiteState) -> dict:
+    _status("📕 Cookbook synthesizer: writing the on-call checklist (LLM)…")
     doc = synthesize(state["classification"], state.get("plans", []))
     return {"cookbook": doc, "trace": ["📕 Cookbook: checklist synthesized"]}
 

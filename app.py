@@ -23,16 +23,23 @@ def run_suite(file_path: str | None, image_path: str | None):
 
     graph = build_graph()
     trace_lines: list[str] = []
+    pending: list[str] = []  # live in-progress lines since the last completed step
+    last_state: dict = {}
     inputs = {"log_path": file_path, "image_path": image_path}
 
-    for chunk in graph.stream(inputs, stream_mode="values"):
-        trace = chunk.get("trace", [])
-        if len(trace) > len(trace_lines):
-            trace_lines = trace
+    for mode, chunk in graph.stream(inputs, stream_mode=["custom", "values"]):
+        if mode == "custom":
+            pending.append(f"   ⏳ {chunk}")
+        else:
+            last_state = chunk
+            trace = chunk.get("trace", [])
+            if len(trace) > len(trace_lines):
+                trace_lines = trace
+                pending = []  # superstep completed — its results replace the live lines
         yield (
-            "\n".join(trace_lines),
-            _render_incidents(chunk),
-            chunk.get("cookbook", ""),
+            "\n".join(trace_lines + pending),
+            _render_incidents(last_state),
+            last_state.get("cookbook", ""),
         )
 
 

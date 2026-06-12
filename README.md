@@ -1,8 +1,12 @@
 # Incident Suite — Multi-Agent DevOps Incident Analysis
 
+![Incident Suite — multi-agent DevOps incident analysis](docs/hero-banner.png)
+
 > Upload ops logs (and optionally a monitoring screenshot) → specialized agents classify incidents, ground remediation plans in a runbook corpus via RAG, enrich them with live web research, notify Slack, raise JIRA tickets, and synthesize an actionable cookbook — orchestrated with LangGraph. Agents **reason with each other**: an adversarial Critic agent independently re-derives root causes, disputes the Classifier, and reviews every remediation plan through bounded revision loops — with full agent-trace transparency and an Inspect AI eval suite.
 
 **Eng Accelerator Hackathon — Topic 1.** Built by Pieter Sadie.
+
+🎬 **[Watch the demo video (Loom)](https://www.loom.com/share/2b24517d66d44cb894dd8057e26713cf)** — full run: log upload → critic-verified classification → grounded plans → Slack + JIRA → cookbook.
 
 ![Incident Suite operator console — live agent trace, grounded plans, citations](docs/02-analysis.png)
 

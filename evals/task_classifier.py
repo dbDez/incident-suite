@@ -27,19 +27,14 @@ from src.incident_suite.ingest import ingest_log  # noqa: E402
 KNOWN_INCIDENTS = {
     "web-outage.log": [
         {
-            "id": "upstream-timeout-502",
+            "id": "checkout-gateway-outage",
             "expected_severity": "critical",
-            "description": "nginx 502s and upstream read timeouts on /api/checkout — user-facing outage, 5xx alert firing above threshold.",
+            "description": "User-facing outage on /api/checkout: nginx 502s and upstream read timeouts, 5xx alert firing above threshold. Worker-pool saturation lines may appear as evidence here or under the DB incident. May reasonably be reported as one incident or split into 502s + timeouts.",
         },
         {
             "id": "db-connection-pool-exhaustion",
             "expected_severity": "critical",
             "description": "MySQL 'Too many connections' (Threads_connected=501/500) plus HikariPool acquisition timeouts; idle-in-transaction sessions holding connections.",
-        },
-        {
-            "id": "worker-pool-saturation",
-            "expected_severity": "high",
-            "description": "app-api worker pool saturated 64/64 with growing queue depth — downstream symptom of the DB stall.",
         },
         {
             "id": "deploy-correlation",

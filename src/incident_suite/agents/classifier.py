@@ -8,16 +8,25 @@ extract of an operations log (deduplicated error/warn lines with repeat counts, 
 level histogram, time window). Identify every DISTINCT incident.
 
 Rules:
-- Group related lines into one incident; do not emit one incident per line.
+- Group by ROOT CAUSE, not by symptom or component: gateway 5xx, upstream \
+timeouts and the monitoring alert for the same route are ONE incident; a \
+full disk on one host is ONE incident even if it breaks several services \
+(list them all in affected_component and evidence). Emit separate incidents \
+only for genuinely independent root causes.
 - evidence must quote verbatim lines from the extract.
 - incident_id is a stable kebab-case slug describing the failure mode.
-- Severity: critical = user-facing outage or data loss in progress; high = \
-degradation or imminent outage; medium = needs attention this week; low/info = hygiene.
+- Severity: critical = user-facing outage or data loss IN PROGRESS (e.g. \
+5xx on a user-facing route above alert threshold, database refusing \
+connections/writes); high = degradation or imminent outage; medium = needs \
+attention this week; low/info = hygiene.
+- If a deploy/release event correlates in time with error onset, emit it as \
+its own incident (severity medium, category application) recommending \
+rollback consideration.
 - Do not invent incidents that the evidence does not support."""
 
 
 def classify(extract: LogExtract, observations: str | None = None) -> ClassificationResult:
-    llm = get_llm().with_structured_output(ClassificationResult)
+    llm = get_llm(temperature=0.0).with_structured_output(ClassificationResult)
     prompt = (
         f"{SYSTEM}\n\n## Log extract\n\n"
         f"File: {extract.source_file} | {extract.total_lines} lines | "

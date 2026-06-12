@@ -1,13 +1,37 @@
 """JIRA ticket agent — Atlassian Cloud REST v3. Tickets only for critical/high.
-Degrades gracefully when unconfigured."""
+Degrades gracefully when unconfigured.
+
+Issue type is resolved dynamically from the target project (Bug → Task →
+first non-subtask type), so company-managed, team-managed and Service
+Management projects all work without configuration."""
 
 import os
+from functools import lru_cache
 
 import requests
 
 from ..schemas import Incident, RemediationPlan, Severity, TicketResult
 
 TICKET_SEVERITIES = (Severity.critical, Severity.high)
+PREFERRED_ISSUE_TYPES = ("Bug", "Task", "[System] Incident", "Incident")
+
+
+@lru_cache(maxsize=4)
+def _resolve_issue_type(base: str, email: str, token: str, project: str) -> str | None:
+    resp = requests.get(
+        f"{base}/rest/api/3/project/{project}", auth=(email, token), timeout=30
+    )
+    if not resp.ok:
+        return None
+    types = [
+        t["name"]
+        for t in resp.json().get("issueTypes", [])
+        if not t.get("subtask", False)
+    ]
+    for preferred in PREFERRED_ISSUE_TYPES:
+        if preferred in types:
+            return preferred
+    return types[0] if types else None
 
 
 def create_ticket(incident: Incident, plan: RemediationPlan) -> TicketResult:
@@ -31,6 +55,15 @@ def create_ticket(incident: Incident, plan: RemediationPlan) -> TicketResult:
             skipped_reason="JIRA_* env vars not configured",
         )
 
+    issue_type = _resolve_issue_type(base, email, token, project)
+    if not issue_type:
+        return TicketResult(
+            incident_id=incident.incident_id,
+            ticket_key=None,
+            ticket_url=None,
+            skipped_reason="could not resolve an issue type for the project (check creds/key)",
+        )
+
     steps_text = "\n".join(
         f"{s.order}. {s.action} — _{s.rationale}_ (risk: {s.risk})" for s in plan.steps
     )
@@ -47,7 +80,7 @@ def create_ticket(incident: Incident, plan: RemediationPlan) -> TicketResult:
         "fields": {
             "project": {"key": project},
             "summary": f"[{incident.severity.value.upper()}] {incident.title}",
-            "issuetype": {"name": "Bug"},
+            "issuetype": {"name": issue_type},
             "description": {
                 "type": "doc",
                 "version": 1,

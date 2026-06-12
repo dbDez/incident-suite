@@ -14,12 +14,27 @@ Grade: CORRECT ≥ 0.8 weighted, PARTIAL ≥ 0.5.
 
 ## Run
 
+Inspect AI reaches OpenRouter through its `openai/` provider — point it at
+OpenRouter with two env vars (same key the app uses):
+
 ```bash
-pip install inspect-ai
+# Windows (PowerShell)
+$env:OPENAI_API_KEY  = "<your OpenRouter key>"
+$env:OPENAI_BASE_URL = "https://openrouter.ai/api/v1"
+
+# macOS/Linux
+export OPENAI_API_KEY=<your OpenRouter key>
+export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+```
+
+Then, from the repo root:
+
+```bash
+cd evals
 inspect eval task_classifier.py --model openai/openai/gpt-4o-mini
 inspect eval task_classifier.py --model openai/anthropic/claude-sonnet-4-6   # compare models
 inspect view
 ```
 
-Uses the same OpenRouter key as the app (`OPENAI_API_KEY`/`OPENAI_BASE_URL`
-per Inspect AI's openai provider convention — see `.env.example`).
+(Model ids are `openai/<openrouter-model-id>` — the first `openai/` selects
+Inspect's provider, the rest is the OpenRouter model path.)

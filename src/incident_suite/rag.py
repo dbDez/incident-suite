@@ -22,9 +22,12 @@ from .schemas import Citation, Incident
 
 RUNBOOK_DIR = Path(__file__).resolve().parents[2] / "runbooks"
 
-# Chroma returns cosine DISTANCE (lower = closer). Above this, a chunk is
-# considered unrelated and the Remediation agent falls back to first principles.
-MAX_DISTANCE = 0.75
+# Chroma returns cosine DISTANCE (lower = closer); we report similarity = 1-distance.
+# bge-small similarities cluster high, so a flat floor lets unrelated runbooks
+# leak in. Instead: if the BEST chunk isn't a confident match, retrieve nothing
+# (the Remediation agent then reasons from first principles and escalates);
+# otherwise keep only chunks from the winning runbook plus other confident hits.
+MIN_TOP_SIMILARITY = 0.72
 TOP_K = 4
 
 _splitter = MarkdownHeaderTextSplitter(
@@ -62,7 +65,10 @@ def retrieve(incident: Incident) -> list[Citation]:
         f"Evidence: {' '.join(incident.evidence[:3])}"
     )
     results = _store().similarity_search_with_score(query, k=TOP_K)
-    citations = [
+    if not results:
+        return []
+
+    scored = [
         Citation(
             source=doc.metadata.get("source", "unknown"),
             section=doc.metadata.get("section", doc.metadata.get("runbook", "")),
@@ -70,6 +76,8 @@ def retrieve(incident: Incident) -> list[Citation]:
             excerpt=doc.page_content,
         )
         for doc, distance in results
-        if distance <= MAX_DISTANCE
     ]
-    return citations
+    top = max(scored, key=lambda c: c.score)
+    if top.score < MIN_TOP_SIMILARITY:
+        return []  # no confident runbook — first principles + escalation
+    return [c for c in scored if c.source == top.source or c.score >= MIN_TOP_SIMILARITY]

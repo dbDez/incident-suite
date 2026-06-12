@@ -133,7 +133,19 @@ def _graph_diagram() -> str | None:
         return None
 
 
-with gr.Blocks(title=f"Incident Suite v{__version__}") as demo:
+# Gradio's built-in icon buttons have aria-labels but no hover text — mirror
+# every aria-label into a native title tooltip, including late-rendered nodes.
+TOOLTIP_JS = """
+() => {
+  const apply = () => document
+    .querySelectorAll('button[aria-label]:not([title]), [data-testid][aria-label]:not([title])')
+    .forEach(el => el.title = el.getAttribute('aria-label'));
+  apply();
+  new MutationObserver(apply).observe(document.body, {subtree: true, childList: true});
+}
+"""
+
+with gr.Blocks(title=f"Incident Suite v{__version__}", js=TOOLTIP_JS) as demo:
     gr.Markdown(
         f"# 🚨 Incident Suite `v{__version__}`\n"
         "Multi-agent DevOps incident analysis — LangGraph orchestration, runbook RAG, "
@@ -143,7 +155,9 @@ with gr.Blocks(title=f"Incident Suite v{__version__}") as demo:
         with gr.Column(scale=1):
             file_in = gr.File(label="Ops log", type="filepath", file_types=[".log", ".txt"])
             image_in = gr.Image(
-                label="Monitoring screenshot (optional)", type="filepath"
+                label="Monitoring screenshot (optional — works alone too)",
+                type="filepath",
+                sources=["upload", "clipboard"],
             )
             gr.Examples(
                 examples=[[str(p)] for p in sorted(SAMPLE_DIR.glob("*.log"))],

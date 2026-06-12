@@ -32,7 +32,9 @@ def add_runbook_ui(file_path: str | None):
     lines = [f"✅ **{name}** added and indexed — split into {len(chunks)} chunks:\n"]
     for c in chunks:
         lines.append(f"- `{name} → {c['section']}` ({c['words']} words) — _{c['preview']}…_")
-    lines.append("\nRe-run an analysis: incidents matching this runbook will now cite it.")
+    lines.append(
+        "\nNow click **Analyze** again — incidents matching this runbook will cite it."
+    )
     return "\n".join(lines), kb_stats_md()
 
 

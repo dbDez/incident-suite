@@ -98,6 +98,15 @@ inspect view
 
 See `evals/README.md` for the OpenRouter env setup.
 
+## Live integrations — proof
+
+Tickets raised by the JIRA agent (severity-gated: critical/high only), with the
+incident evidence and guarded remediation plan inside each ticket:
+
+![JIRA tickets created by the suite](docs/jira-list.png)
+
+![Ticket detail — evidence and remediation plan](docs/jira-ticket.png)
+
 ## Code tour — where each concept lives
 
 | Concept | File | What to look at |

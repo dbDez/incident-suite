@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { background:#111217; color:#d8d9da; font-family:Roboto,Segoe UI,sans-serif; margin:0; padding:14px; }
+  .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .title { font-size:15px; font-weight:600; }
+  .time { font-size:12px; color:#8e8e8e; }
+  .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .panel { background:#181b1f; border:1px solid #25272d; border-radius:3px; padding:10px 12px; }
+  .panel h3 { margin:0 0 8px; font-size:12px; font-weight:500; color:#9aa0a6; }
+  .big { font-size:34px; font-weight:700; }
+  .red { color:#f2495c; } .orange { color:#ff9830; } .green { color:#73bf69; }
+  .sub { font-size:11px; color:#8e8e8e; margin-top:2px; }
+  .wide { grid-column:span 3; }
+  svg text { font-size:10px; fill:#8e8e8e; }
+  .alertrow { display:flex; gap:8px; align-items:center; font-size:12px; padding:5px 0; border-bottom:1px solid #25272d; }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="title">shop.example.com — Production Overview</div>
+  <div class="time">2026-06-12 14:00 – 14:10 SAST &nbsp;·&nbsp; refresh 10s</div>
+</div>
+<div class="grid">
+  <div class="panel"><h3>Checkout 5xx rate</h3><div class="big red">6.8%</div><div class="sub">threshold 1.0% — BREACHED 3m</div></div>
+  <div class="panel"><h3>p99 latency /api/checkout</h3><div class="big orange">30.0s</div><div class="sub">baseline 180ms</div></div>
+  <div class="panel"><h3>MySQL connections</h3><div class="big red">501 / 500</div><div class="sub">Threads_connected at max_connections</div></div>
+
+  <div class="panel wide"><h3>HTTP 5xx responses (per minute)</h3>
+    <svg width="100%" height="120" viewBox="0 0 900 120" preserveAspectRatio="none">
+      <polyline fill="none" stroke="#f2495c" stroke-width="2"
+        points="0,112 80,110 160,111 240,108 320,96 400,70 480,46 560,30 640,22 720,14 800,10 900,6"/>
+      <line x1="0" y1="100" x2="900" y2="100" stroke="#ff9830" stroke-dasharray="4"/>
+      <text x="4" y="96">alert threshold</text>
+      <text x="4" y="116">14:00</text><text x="860" y="116">14:10</text>
+    </svg>
+  </div>
+
+  <div class="panel wide"><h3>app-api worker pool utilisation</h3>
+    <svg width="100%" height="100" viewBox="0 0 900 100" preserveAspectRatio="none">
+      <polyline fill="none" stroke="#ff9830" stroke-width="2"
+        points="0,80 100,78 200,75 300,60 400,38 500,18 600,8 700,6 800,5 900,5"/>
+      <line x1="0" y1="5" x2="900" y2="5" stroke="#f2495c" stroke-dasharray="4"/>
+      <text x="4" y="18">64/64 workers — saturated, queue depth 601</text>
+    </svg>
+  </div>
+
+  <div class="panel wide"><h3>Firing alerts</h3>
+    <div class="alertrow"><span class="dot" style="background:#f2495c"></span> CHECKOUT_5XX_RATE &nbsp;·&nbsp; firing 3m &nbsp;·&nbsp; value 6.8% (threshold 1.0%)</div>
+    <div class="alertrow"><span class="dot" style="background:#f2495c"></span> MYSQL_CONNECTIONS_MAX &nbsp;·&nbsp; firing 2m &nbsp;·&nbsp; Threads_connected=501</div>
+    <div class="alertrow"><span class="dot" style="background:#ff9830"></span> APP_API_WORKER_SATURATION &nbsp;·&nbsp; firing 4m &nbsp;·&nbsp; 64/64 active</div>
+    <div class="alertrow" style="border:none"><span class="dot" style="background:#73bf69"></span> deploy-bot &nbsp;·&nbsp; release v2.14.3 → app-api at 13:58:02</div>
+  </div>
+</div>
+</body>
+</html>

@@ -111,4 +111,5 @@ See `evals/README.md` for the OpenRouter env setup.
 | `src/incident_suite/integrations/` | Slack webhook + JIRA REST clients |
 | `runbooks/` | Remediation knowledge corpus (12 runbooks, RAG source) |
 | `data/sample_logs/` | Reproducible demo incidents |
+| `data/sample_screenshots/` | Synthetic monitoring dashboard for the vision-intake demo (upload alongside a log) |
 | `evals/` | Inspect AI eval of the Classifier agent |

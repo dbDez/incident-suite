@@ -98,6 +98,22 @@ inspect view
 
 See `evals/README.md` for the OpenRouter env setup.
 
+## Code tour — where each concept lives
+
+| Concept | File | What to look at |
+|---|---|---|
+| **LangGraph orchestration** | `src/incident_suite/graph.py` | `build_graph()` — StateGraph, nodes, edges; `SuiteState` with reducer-merged `trace`/`plans` |
+| **LangGraph Send API (map-reduce)** | `src/incident_suite/graph.py` | `fan_out_remediation()` returns one `Send("remediate_one", …)` per incident — parallel branches, implicit join |
+| **Live agent trace** | `src/incident_suite/graph.py` + `app.py` | `_status()` → `get_stream_writer()` custom stream, merged with `values` stream in `run_suite()` |
+| **LangChain structured outputs** | `src/incident_suite/agents/classifier.py`, `agents/remediation.py` | `llm.with_structured_output(<PydanticModel>)` — no free-text agent handoffs |
+| **Schema contracts** | `src/incident_suite/schemas.py` | Every inter-agent payload; note `RemediationDraft` vs `RemediationPlan` (LLM never generates its own citations) |
+| **RAG (Chroma + FastEmbed + HF model)** | `src/incident_suite/rag.py` | Heading-aware chunking, local `BAAI/bge-small-en-v1.5` embeddings, top-source confidence gate |
+| **Side-channel ingest** | `src/incident_suite/ingest.py` | Log parsing/dedup in Python; `[context: operational event]` lines for deploy correlation |
+| **Vision intake** | `src/incident_suite/vision.py` | Screenshot → observations via OpenRouter vision model |
+| **Web research** | `src/incident_suite/agents/research.py` | Tavily per-incident, graceful no-key skip |
+| **Guarded integrations** | `src/incident_suite/integrations/` | Slack webhook; JIRA with dynamic issue-type resolution, severity-gated |
+| **Evals** | `evals/task_classifier.py` | Inspect AI task, LLM judge + deterministic known-incidents rubric |
+
 ## Repo layout
 
 | Path | What |

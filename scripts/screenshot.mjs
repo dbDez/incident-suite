@@ -22,11 +22,12 @@ await page.waitForTimeout(1000);
 await page.getByRole("button", { name: "Analyze" }).click();
 
 // 3. Wait for the run to finish (cookbook trace line appears), max 3 min
+// NOTE: the page has multiple textareas (paste-log box + trace) — check them all.
 await page.waitForFunction(
-  () => {
-    const t = document.querySelector("textarea");
-    return t && t.value.includes("Cookbook: checklist synthesized");
-  },
+  () =>
+    [...document.querySelectorAll("textarea")].some((t) =>
+      t.value.includes("Cookbook: checklist synthesized")
+    ),
   null,
   { timeout: 180000, polling: 2000 }
 );
@@ -36,7 +37,11 @@ await page.waitForTimeout(2500);
 await page.screenshot({ path: `${OUT}/02-analysis.png`, fullPage: false });
 await page.screenshot({ path: `${OUT}/03-fullpage.png`, fullPage: true });
 
-const trace = await page.locator("textarea").first().inputValue();
+const trace = await page.evaluate(() =>
+  [...document.querySelectorAll("textarea")]
+    .map((t) => t.value)
+    .sort((a, b) => b.length - a.length)[0]
+);
 console.log("=== FINAL TRACE (tail) ===");
 console.log(trace.split("\n").slice(-14).join("\n"));
 

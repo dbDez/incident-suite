@@ -5,7 +5,10 @@ watch the agent trace stream live → read incidents, grounded plans,
 Slack/JIRA outcomes and the synthesized cookbook.
 """
 
+import queue
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import gradio as gr
@@ -63,16 +66,56 @@ def run_suite(file_path: str | None, image_path: str | None, log_text: str = "")
     now_running = "▶ starting…"
     inputs = {"log_path": file_path, "image_path": image_path}
 
-    for mode, chunk in graph.stream(inputs, stream_mode=["custom", "values"]):
+    # The graph runs in a worker thread feeding a queue, so the UI loop can
+    # keep ticking an elapsed-seconds counter while a slow step (LLM call,
+    # first-run model download) produces no events — the app never LOOKS frozen.
+    q: queue.Queue = queue.Queue()
+    DONE, FAILED = object(), object()
+
+    def _worker():
+        try:
+            for item in graph.stream(inputs, stream_mode=["custom", "values"]):
+                q.put(item)
+            q.put(DONE)
+        except Exception as e:  # surface gracefully — never let Gradio show "Error"
+            q.put((FAILED, e))
+
+    threading.Thread(target=_worker, daemon=True).start()
+    step_started = time.monotonic()
+    error_line = ""
+
+    while True:
+        try:
+            item = q.get(timeout=1.0)
+        except queue.Empty:
+            elapsed = int(time.monotonic() - step_started)
+            if elapsed >= 2:  # only start ticking once a step actually feels slow
+                yield (
+                    f"{now_running} · ⏱ {elapsed}s — please be patient, agents are thinking…",
+                    _tokens_md(),
+                    "\n".join(trace_lines + pending),
+                    _render_incidents(last_state),
+                    last_state.get("cookbook", ""),
+                )
+            continue
+        if item is DONE:
+            break
+        if isinstance(item, tuple) and item[0] is FAILED:
+            error_line = f"❌ Run aborted: {type(item[1]).__name__}: {item[1]}"
+            trace_lines.append(error_line)
+            break
+        mode, chunk = item
         if mode == "custom":
             pending.append(f"   ⏳ {chunk}")
             now_running = f"▶ **{chunk}**"
+            step_started = time.monotonic()
         else:
             last_state = chunk
             trace = chunk.get("trace", [])
             if len(trace) > len(trace_lines):
                 trace_lines = trace
                 pending = []  # superstep completed — its results replace the live lines
+            step_started = time.monotonic()
         yield (
             now_running,
             _tokens_md(),
@@ -82,7 +125,7 @@ def run_suite(file_path: str | None, image_path: str | None, log_text: str = "")
         )
 
     yield (
-        "✅ **Run complete**",
+        error_line if error_line else "✅ **Run complete**",
         _tokens_md(),
         "\n".join(trace_lines),
         _render_incidents(last_state),

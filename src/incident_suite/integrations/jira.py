@@ -55,7 +55,15 @@ def create_ticket(incident: Incident, plan: RemediationPlan) -> TicketResult:
             skipped_reason="JIRA_* env vars not configured",
         )
 
-    issue_type = _resolve_issue_type(base, email, token, project)
+    try:
+        issue_type = _resolve_issue_type(base, email, token, project)
+    except requests.RequestException as e:
+        return TicketResult(
+            incident_id=incident.incident_id,
+            ticket_key=None,
+            ticket_url=None,
+            skipped_reason=f"JIRA unreachable: {type(e).__name__}",
+        )
     if not issue_type:
         return TicketResult(
             incident_id=incident.incident_id,
@@ -90,9 +98,17 @@ def create_ticket(incident: Incident, plan: RemediationPlan) -> TicketResult:
             },
         }
     }
-    resp = requests.post(
-        f"{base}/rest/api/3/issue", json=payload, auth=(email, token), timeout=30
-    )
+    try:
+        resp = requests.post(
+            f"{base}/rest/api/3/issue", json=payload, auth=(email, token), timeout=30
+        )
+    except requests.RequestException as e:
+        return TicketResult(
+            incident_id=incident.incident_id,
+            ticket_key=None,
+            ticket_url=None,
+            skipped_reason=f"JIRA unreachable: {type(e).__name__}",
+        )
     if not resp.ok:
         return TicketResult(
             incident_id=incident.incident_id,

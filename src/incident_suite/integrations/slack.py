@@ -29,7 +29,14 @@ def notify(incident: Incident, plan: RemediationPlan) -> NotificationResult:
             + (f"_Runbook: {plan.runbook_source}_" if plan.runbook_source else "_No runbook matched_")
         )
     }
-    resp = requests.post(url, json=payload, timeout=15)
+    try:
+        resp = requests.post(url, json=payload, timeout=15)
+    except requests.RequestException as e:
+        return NotificationResult(
+            incident_id=incident.incident_id,
+            delivered=False,
+            skipped_reason=f"Slack unreachable: {type(e).__name__}",
+        )
     return NotificationResult(
         incident_id=incident.incident_id,
         delivered=resp.ok,

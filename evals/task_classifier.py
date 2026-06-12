@@ -56,7 +56,7 @@ KNOWN_INCIDENTS = {
         {
             "id": "postgres-readonly-wal",
             "expected_severity": "critical",
-            "description": "postgres cannot write WAL, database switched to read-only — write transactions rejected.",
+            "description": "postgres cannot write WAL, database switched to read-only — write transactions rejected. Sharing the disk-full root cause, this MAY be reported inside the disk-full incident: D1 passes if postgres read-only/WAL failure appears in any incident's evidence or affected components.",
         },
         {
             "id": "etl-sla-breach",
@@ -100,7 +100,8 @@ def classifier_scorer(grader_model: str | None = None):
             or os.environ.get("INSPECT_GRADER_MODEL", "openai/anthropic/claude-sonnet-4-6")
         )
         result = await grader.generate(
-            f"{rubric}\n\n## Classifier output to evaluate\n\n{state.output.completion}"
+            f"{rubric}\n\n## Classifier output to evaluate\n\n{state.output.completion}",
+            config=GenerateConfig(max_tokens=2048, temperature=0.0),
         )
         text = result.completion.lower()
         if "grade: correct" in text:
@@ -127,5 +128,5 @@ def classifier_eval(grader_model: str | None = None):
         dataset=samples,
         solver=[system_message(SYSTEM), generate()],
         scorer=classifier_scorer(grader_model),
-        config=GenerateConfig(temperature=0.2, max_tokens=8192),
+        config=GenerateConfig(temperature=0.0, max_tokens=4096),
     )

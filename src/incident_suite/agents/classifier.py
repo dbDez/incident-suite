@@ -19,9 +19,11 @@ only for genuinely independent root causes.
 5xx on a user-facing route above alert threshold, database refusing \
 connections/writes); high = degradation or imminent outage; medium = needs \
 attention this week; low/info = hygiene.
-- If a deploy/release event correlates in time with error onset, emit it as \
-its own incident (severity medium, category application) recommending \
-rollback consideration.
+- Lines tagged [context: operational event] are deploys/restarts/failovers. \
+If such an event correlates in time with error onset, emit it as its own \
+incident (severity medium, category application) recommending rollback \
+consideration — and quote THAT context line as its evidence. Never emit a \
+deploy-correlation incident without an explicit operational-event line.
 - Do not invent incidents that the evidence does not support."""
 
 

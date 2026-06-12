@@ -15,6 +15,16 @@ from .schemas import LogExtract
 
 # Tune as needed; keeps the extract well under any context budget.
 MAX_ERROR_LINES = 120
+MAX_CONTEXT_LINES = 15
+
+# INFO-level lines that are gold for incident correlation (deploys, restarts,
+# scaling events) — forwarded to the classifier as context even though they
+# aren't errors.
+NOTABLE_INFO_PATTERN = re.compile(
+    r"\b(deploy(?:ed|ment)?|release[ds]?|rolled?[- ]?back|rollback|restart(?:ed|ing)?|"
+    r"scaled?(?:[- ]?(?:up|down|out|in))?|failover|switchover|maintenance)\b",
+    re.IGNORECASE,
+)
 
 LEVEL_PATTERN = re.compile(
     r"\b(TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERROR|SEVERE|CRIT(?:ICAL)?|FATAL|PANIC)\b",
@@ -39,6 +49,7 @@ def ingest_log(path: str | Path) -> LogExtract:
 
     level_counts: Counter[str] = Counter()
     error_lines: list[str] = []
+    context_lines: list[str] = []
     seen_normalised: Counter[str] = Counter()
     first_ts, last_ts = "", ""
 
@@ -59,12 +70,19 @@ def ingest_log(path: str | Path) -> LogExtract:
             seen_normalised[key] += 1
             if seen_normalised[key] == 1 and len(error_lines) < MAX_ERROR_LINES:
                 error_lines.append(line.strip())
+        elif NOTABLE_INFO_PATTERN.search(line) and len(context_lines) < MAX_CONTEXT_LINES:
+            context_lines.append(line.strip())
 
     # Annotate repeat counts so the model sees frequency without seeing repeats.
     annotated = []
     for line in error_lines:
         count = seen_normalised[_normalise(line)]
         annotated.append(f"{line}  [x{count}]" if count > 1 else line)
+
+    # Operational context (deploys, restarts, failovers) — not errors, but
+    # essential for correlation. Clearly labelled so the model can cite them.
+    for line in context_lines:
+        annotated.append(f"{line}  [context: operational event]")
 
     return LogExtract(
         source_file=path.name,

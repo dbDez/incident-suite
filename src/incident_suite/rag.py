@@ -13,6 +13,8 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from itertools import count
+
 from langchain_chroma import Chroma
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_core.documents import Document
@@ -44,11 +46,18 @@ def _load_chunks() -> list[Document]:
     return docs
 
 
+_build_no = count(1)
+
+
 @lru_cache(maxsize=1)
 def _store() -> Chroma:
+    # Unique collection per build: chromadb caches clients in-process, so a
+    # rebuild (e.g. after add_runbook) into the same collection name would
+    # APPEND duplicates instead of starting fresh.
     return Chroma.from_documents(
         documents=_load_chunks(),
         embedding=FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5"),
+        collection_name=f"runbooks_v{next(_build_no)}",
         collection_metadata={"hnsw:space": "cosine"},
     )
 
@@ -56,6 +65,34 @@ def _store() -> Chroma:
 def warm_up() -> int:
     """Build the index eagerly (first FastEmbed call downloads the model)."""
     return len(_store().get()["ids"])
+
+
+def index_stats() -> dict:
+    return {
+        "runbooks": len(list(RUNBOOK_DIR.glob("*.md"))),
+        "chunks": len(_store().get()["ids"]),
+    }
+
+
+def add_runbook(file_path: str | Path) -> list[dict]:
+    """Add a runbook to the knowledge base: copy into runbooks/, re-chunk,
+    re-embed, rebuild the index. Returns the new file's chunks so the UI can
+    SHOW the heading-aware chunking. Corpus is small — full rebuild is seconds."""
+    src = Path(file_path)
+    dest = RUNBOOK_DIR / src.name
+    dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+
+    _store.cache_clear()
+    warm_up()
+
+    return [
+        {
+            "section": chunk.metadata.get("section", chunk.metadata.get("runbook", "(intro)")),
+            "words": len(chunk.page_content.split()),
+            "preview": chunk.page_content[:120].replace("\n", " "),
+        }
+        for chunk in _splitter.split_text(dest.read_text(encoding="utf-8"))
+    ]
 
 
 def retrieve(incident: Incident) -> list[Citation]:

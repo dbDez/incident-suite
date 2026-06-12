@@ -10,10 +10,30 @@ from pathlib import Path
 
 import gradio as gr
 
-from src.incident_suite import __version__
+from src.incident_suite import __version__, rag
 from src.incident_suite.graph import build_graph
 
 SAMPLE_DIR = Path(__file__).parent / "data" / "sample_logs"
+
+
+def kb_stats_md() -> str:
+    s = rag.index_stats()
+    return (
+        f"**Knowledge base:** {s['runbooks']} runbooks → {s['chunks']} chunks "
+        f"(heading-aware, embedded locally with `bge-small-en-v1.5`)"
+    )
+
+
+def add_runbook_ui(file_path: str | None):
+    if not file_path:
+        return "Upload a markdown runbook first.", kb_stats_md()
+    chunks = rag.add_runbook(file_path)
+    name = Path(file_path).name
+    lines = [f"✅ **{name}** added and indexed — split into {len(chunks)} chunks:\n"]
+    for c in chunks:
+        lines.append(f"- `{name} → {c['section']}` ({c['words']} words) — _{c['preview']}…_")
+    lines.append("\nRe-run an analysis: incidents matching this runbook will now cite it.")
+    return "\n".join(lines), kb_stats_md()
 
 
 def run_suite(file_path: str | None, image_path: str | None):
@@ -114,6 +134,16 @@ with gr.Blocks(title=f"Incident Suite v{__version__}") as demo:
         with gr.Column(scale=2):
             incidents_out = gr.Markdown(label="Incidents & plans")
             cookbook_out = gr.Markdown(label="Cookbook")
+
+    with gr.Accordion("📚 Knowledge base — add a runbook (live RAG re-index)", open=False):
+        kb_stats = gr.Markdown(kb_stats_md())
+        with gr.Row():
+            runbook_in = gr.File(
+                label="New runbook (.md)", type="filepath", file_types=[".md"]
+            )
+            add_btn = gr.Button("Add to knowledge base")
+        chunks_out = gr.Markdown()
+        add_btn.click(add_runbook_ui, inputs=[runbook_in], outputs=[chunks_out, kb_stats])
 
     diagram = _graph_diagram()
     if diagram:
